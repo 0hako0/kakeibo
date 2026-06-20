@@ -1,0 +1,75 @@
+create extension if not exists pgcrypto;
+
+create type monthly_row_type as enum (
+  'income',
+  'fixed_expense',
+  'card_payment',
+  'investment',
+  'other_expense'
+);
+
+create type card_detail_category as enum (
+  'food',
+  'daily_goods',
+  'dining',
+  'cat_goods',
+  'gasoline',
+  'medical',
+  'entertainment',
+  'communication',
+  'other'
+);
+
+create table monthly_sheets (
+  id uuid primary key default gen_random_uuid(),
+  year_month text not null unique check (year_month ~ '^[0-9]{4}-[0-9]{2}$'),
+  previous_month_balance integer not null default 0,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table monthly_rows (
+  id uuid primary key default gen_random_uuid(),
+  sheet_id uuid not null references monthly_sheets(id) on delete cascade,
+  type monthly_row_type not null,
+  item text not null default '',
+  amount integer not null default 0,
+  memo text not null default '',
+  sort_order integer not null default 0,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table card_details (
+  id uuid primary key default gen_random_uuid(),
+  monthly_row_id uuid not null references monthly_rows(id) on delete cascade,
+  category card_detail_category not null default 'other',
+  amount integer not null default 0,
+  memo text not null default '',
+  sort_order integer not null default 0,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index monthly_rows_sheet_id_sort_order_idx on monthly_rows(sheet_id, sort_order);
+create index card_details_monthly_row_id_sort_order_idx on card_details(monthly_row_id, sort_order);
+
+create or replace function set_updated_at()
+returns trigger as $$
+begin
+  new.updated_at = now();
+  return new;
+end;
+$$ language plpgsql;
+
+create trigger monthly_sheets_set_updated_at
+before update on monthly_sheets
+for each row execute function set_updated_at();
+
+create trigger monthly_rows_set_updated_at
+before update on monthly_rows
+for each row execute function set_updated_at();
+
+create trigger card_details_set_updated_at
+before update on card_details
+for each row execute function set_updated_at();

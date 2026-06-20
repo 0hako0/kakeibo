@@ -1,0 +1,33 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+  background: #f4f6f8;
+}
+
+body {
+  margin: 0;
+  color: #17202a;
+  background: #f4f6f8;
+}
+
+input,
+select,
+textarea,
+button {
+  font: inherit;
+}
+
+.sheet-input {
+  @apply h-10 w-full border-0 bg-transparent px-2 text-sm outline-none focus:bg-white focus:ring-2 focus:ring-sky-500;
+}
+
+.sheet-cell {
+  @apply border-b border-r border-line bg-white align-middle;
+}
+
+.sheet-header {
+  @apply border-b border-r border-line bg-slate-100 px-2 py-2 text-left text-xs font-semibold text-slate-700;
+}
