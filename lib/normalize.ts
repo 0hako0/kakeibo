@@ -23,10 +23,18 @@ function normalizePaymentSource(source: PaymentSource, index: number): PaymentSo
 }
 
 function normalizeRow(row: MonthlyRow, defaultPaymentSourceId: string): MonthlyRow {
+  const burdenType = row.burdenType || "household";
+  const isHusbandAdvance = burdenType === "household_advanced_by_husband";
+  const isWifeAdvance = burdenType === "household_advanced_by_wife";
+
   return {
     ...row,
     paymentSourceId: row.paymentSourceId || defaultPaymentSourceId,
-    burdenType: row.burdenType || "household",
+    burdenType,
+    advancePayer: row.advancePayer || (isHusbandAdvance ? "husband" : isWifeAdvance ? "wife" : "none"),
+    settlementTarget:
+      row.settlementTarget || (isHusbandAdvance ? "husband" : isWifeAdvance ? "wife" : "none"),
+    settlementStatus: row.settlementStatus || "unsettled",
     cardDetails: row.cardDetails ?? []
   };
 }

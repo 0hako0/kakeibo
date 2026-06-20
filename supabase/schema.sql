@@ -29,6 +29,25 @@ create type burden_type as enum (
   'household_advanced_by_wife'
 );
 
+create type advance_payer as enum (
+  'none',
+  'husband',
+  'wife'
+);
+
+create type settlement_target as enum (
+  'none',
+  'husband',
+  'wife',
+  'household'
+);
+
+create type settlement_status as enum (
+  'unsettled',
+  'partially_settled',
+  'settled'
+);
+
 create table monthly_sheets (
   id uuid primary key default gen_random_uuid(),
   year_month text not null unique check (year_month ~ '^[0-9]{4}-[0-9]{2}$'),
@@ -54,6 +73,9 @@ create table monthly_rows (
   amount integer not null default 0,
   payment_source_id uuid not null references payment_sources(id),
   burden_type burden_type not null default 'household',
+  advance_payer advance_payer not null default 'none',
+  settlement_target settlement_target not null default 'none',
+  settlement_status settlement_status not null default 'unsettled',
   memo text not null default '',
   sort_order integer not null default 0,
   created_at timestamptz not null default now(),

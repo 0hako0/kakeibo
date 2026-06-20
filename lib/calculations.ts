@@ -7,6 +7,12 @@ const expenseTypes: MonthlyRow["type"][] = [
   "other_expense"
 ];
 
+const householdBurdenTypes: MonthlyRow["burdenType"][] = [
+  "household",
+  "household_advanced_by_husband",
+  "household_advanced_by_wife"
+];
+
 export function calculateSummary(
   rows: MonthlyRow[],
   previousMonthBalance: number,
@@ -17,8 +23,12 @@ export function calculateSummary(
   const cardPaymentTotal = sumByType(rows, ["card_payment"]);
   const investmentTotal = sumByType(rows, ["investment"]);
   const expenseRows = rows.filter((row) => expenseTypes.includes(row.type));
-  const expenseTotal = expenseRows.reduce((total, row) => total + row.amount, 0);
+  const householdExpenseRows = expenseRows.filter((row) => householdBurdenTypes.includes(row.burdenType));
+  const expenseTotal = householdExpenseRows.reduce((total, row) => total + row.amount, 0);
+  const husbandAdvanceTotal = sumUnsettledAdvances(expenseRows, "household_advanced_by_husband");
+  const wifeAdvanceTotal = sumUnsettledAdvances(expenseRows, "household_advanced_by_wife");
   const monthlyBalance = incomeTotal - incomeDeductionTotal - expenseTotal;
+  const householdBalanceAfterSettlement = monthlyBalance - husbandAdvanceTotal - wifeAdvanceTotal;
 
   return {
     incomeTotal,
@@ -30,13 +40,14 @@ export function calculateSummary(
     previousDiff: monthlyBalance - previousMonthBalance,
     savedAmount: Math.max(monthlyBalance, 0),
     paymentSourceExpenseTotals: calculatePaymentSourceExpenseTotals(expenseRows, paymentSources),
-    householdBurdenTotal: sumByBurden(expenseRows, [
-      "household",
-      "household_advanced_by_husband",
-      "household_advanced_by_wife"
-    ]),
+    householdBurdenTotal: sumByBurden(expenseRows, householdBurdenTypes),
     husbandBurdenTotal: sumByBurden(expenseRows, ["husband"]),
-    wifeBurdenTotal: sumByBurden(expenseRows, ["wife"])
+    wifeBurdenTotal: sumByBurden(expenseRows, ["wife"]),
+    husbandAdvanceTotal,
+    wifeAdvanceTotal,
+    amountToSettleToHusband: husbandAdvanceTotal,
+    amountToSettleToWife: wifeAdvanceTotal,
+    householdBalanceAfterSettlement
   };
 }
 
@@ -69,4 +80,10 @@ function calculatePaymentSourceExpenseTotals(
         .reduce((total, row) => total + row.amount, 0)
     }))
     .filter((source) => source.amount !== 0);
+}
+
+function sumUnsettledAdvances(rows: MonthlyRow[], burdenType: MonthlyRow["burdenType"]) {
+  return rows
+    .filter((row) => row.burdenType === burdenType && row.settlementStatus !== "settled")
+    .reduce((total, row) => total + row.amount, 0);
 }

@@ -9,18 +9,27 @@ import { createId } from "@/lib/ids";
 import { normalizeSheet } from "@/lib/normalize";
 import { loadSheets, saveSheets } from "@/lib/storage";
 import {
+  advancePayerLabels,
+  advancePayerOptions,
   burdenTypeLabels,
   burdenTypeOptions,
   cardCategoryLabels,
   cardCategoryOptions,
   rowTypeLabels,
   rowTypeOptions,
+  settlementStatusLabels,
+  settlementStatusOptions,
+  settlementTargetLabels,
+  settlementTargetOptions,
+  type AdvancePayer,
   type BurdenType,
   type CardDetail,
   type MonthlyRow,
   type MonthlySheet,
   type PaymentSource,
-  type RowType
+  type RowType,
+  type SettlementStatus,
+  type SettlementTarget
 } from "@/lib/types";
 import { calculateCardDetailTotal } from "@/lib/calculations";
 
@@ -28,6 +37,7 @@ export default function Home() {
   const [yearMonth, setYearMonth] = useState(thisYearMonth());
   const [sheets, setSheets] = useState<Record<string, MonthlySheet>>({});
   const [activeCardRowId, setActiveCardRowId] = useState<string | null>(null);
+  const [isPaymentSourceMasterOpen, setIsPaymentSourceMasterOpen] = useState(false);
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
@@ -92,6 +102,9 @@ export default function Home() {
           amount: 0,
           paymentSourceId: current.paymentSources[0]?.id ?? "",
           burdenType: "household",
+          advancePayer: "none",
+          settlementTarget: "none",
+          settlementStatus: "unsettled",
           memo: "",
           sortOrder: current.rows.length,
           cardDetails: []
@@ -153,9 +166,12 @@ export default function Home() {
         }
 
         const nextType = patch.type ?? row.type;
+        const nextBurdenType = patch.burdenType ?? row.burdenType;
+        const settlementDefaults = getSettlementDefaults(nextBurdenType);
         return {
           ...row,
           ...patch,
+          ...("burdenType" in patch ? settlementDefaults : {}),
           cardDetails: nextType === "card_payment" ? row.cardDetails : []
         };
       })
@@ -300,7 +316,7 @@ export default function Home() {
         <section className="grid gap-2 border border-line bg-white p-3 md:grid-cols-4 lg:grid-cols-8">
           <SummaryItem label="収入合計" value={summary.incomeTotal} />
           <SummaryItem label="収入控除合計" value={summary.incomeDeductionTotal} />
-          <SummaryItem label="支出合計" value={summary.expenseTotal} />
+          <SummaryItem label="家計支出合計" value={summary.expenseTotal} />
           <SummaryItem label="カード引落合計" value={summary.cardPaymentTotal} />
           <SummaryItem label="投資合計" value={summary.investmentTotal} />
           <SummaryItem label="月間残高" value={summary.monthlyBalance} emphasize />
@@ -311,6 +327,8 @@ export default function Home() {
         <section className="grid gap-4 lg:grid-cols-[1.1fr_1fr]">
           <PaymentSourceMaster
             paymentSources={sheet.paymentSources}
+            isOpen={isPaymentSourceMasterOpen}
+            onToggle={() => setIsPaymentSourceMasterOpen((current) => !current)}
             onAdd={addPaymentSource}
             onUpdate={updatePaymentSource}
             onDelete={deletePaymentSource}
@@ -324,6 +342,11 @@ export default function Home() {
               <SummaryItem label="家計負担額" value={summary.householdBurdenTotal} />
               <SummaryItem label="夫負担額" value={summary.husbandBurdenTotal} />
               <SummaryItem label="妻負担額" value={summary.wifeBurdenTotal} />
+              <SummaryItem label="夫立替合計" value={summary.husbandAdvanceTotal} />
+              <SummaryItem label="妻立替合計" value={summary.wifeAdvanceTotal} />
+              <SummaryItem label="精算後の家計残高" value={summary.householdBalanceAfterSettlement} emphasize />
+              <SummaryItem label="夫へ精算すべき金額" value={summary.amountToSettleToHusband} />
+              <SummaryItem label="妻へ精算すべき金額" value={summary.amountToSettleToWife} />
             </div>
             <div className="overflow-x-auto px-3 pb-3">
               <table className="min-w-[420px] table-fixed border-collapse text-sm">
@@ -385,13 +408,16 @@ export default function Home() {
           </div>
 
           <div className="overflow-x-auto">
-            <table className="min-w-[1280px] table-fixed border-collapse text-sm">
+            <table className="min-w-[1660px] table-fixed border-collapse text-sm">
               <colgroup>
                 <col className="w-36" />
                 <col className="w-56" />
                 <col className="w-36" />
                 <col className="w-48" />
                 <col className="w-52" />
+                <col className="w-32" />
+                <col className="w-40" />
+                <col className="w-32" />
                 <col className="w-[22rem]" />
                 <col className="w-32" />
                 <col className="w-24" />
@@ -403,6 +429,9 @@ export default function Home() {
                   <th className="sheet-header">金額</th>
                   <th className="sheet-header">支払い元</th>
                   <th className="sheet-header">負担区分</th>
+                  <th className="sheet-header">立替者</th>
+                  <th className="sheet-header">精算先</th>
+                  <th className="sheet-header">精算状態</th>
                   <th className="sheet-header">メモ</th>
                   <th className="sheet-header">内訳あり</th>
                   <th className="sheet-header">操作</th>
@@ -410,7 +439,15 @@ export default function Home() {
               </thead>
               <tbody>
                 {sheet.rows.map((row) => (
-                  <tr key={row.id}>
+                  <tr
+                    key={row.id}
+                    className={
+                      row.burdenType === "household_advanced_by_husband" ||
+                      row.burdenType === "household_advanced_by_wife"
+                        ? "advance-row"
+                        : ""
+                    }
+                  >
                     <td className="sheet-cell">
                       <select
                         value={row.type}
@@ -467,6 +504,55 @@ export default function Home() {
                         {burdenTypeOptions.map((burden) => (
                           <option key={burden} value={burden}>
                             {burdenTypeLabels[burden]}
+                          </option>
+                        ))}
+                      </select>
+                    </td>
+                    <td className="sheet-cell">
+                      <select
+                        value={row.advancePayer}
+                        onChange={(event) =>
+                          updateRow(row.id, { advancePayer: event.target.value as AdvancePayer })
+                        }
+                        className="sheet-input"
+                      >
+                        {advancePayerOptions.map((payer) => (
+                          <option key={payer} value={payer}>
+                            {advancePayerLabels[payer]}
+                          </option>
+                        ))}
+                      </select>
+                    </td>
+                    <td className="sheet-cell">
+                      <select
+                        value={row.settlementTarget}
+                        onChange={(event) =>
+                          updateRow(row.id, {
+                            settlementTarget: event.target.value as SettlementTarget
+                          })
+                        }
+                        className="sheet-input"
+                      >
+                        {settlementTargetOptions.map((target) => (
+                          <option key={target} value={target}>
+                            {settlementTargetLabels[target]}
+                          </option>
+                        ))}
+                      </select>
+                    </td>
+                    <td className="sheet-cell">
+                      <select
+                        value={row.settlementStatus}
+                        onChange={(event) =>
+                          updateRow(row.id, {
+                            settlementStatus: event.target.value as SettlementStatus
+                          })
+                        }
+                        className="sheet-input"
+                      >
+                        {settlementStatusOptions.map((status) => (
+                          <option key={status} value={status}>
+                            {settlementStatusLabels[status]}
                           </option>
                         ))}
                       </select>
@@ -537,13 +623,44 @@ function SummaryItem({
   );
 }
 
+function getSettlementDefaults(burdenType: BurdenType): Pick<
+  MonthlyRow,
+  "advancePayer" | "settlementTarget" | "settlementStatus"
+> {
+  if (burdenType === "household_advanced_by_husband") {
+    return {
+      advancePayer: "husband",
+      settlementTarget: "husband",
+      settlementStatus: "unsettled"
+    };
+  }
+
+  if (burdenType === "household_advanced_by_wife") {
+    return {
+      advancePayer: "wife",
+      settlementTarget: "wife",
+      settlementStatus: "unsettled"
+    };
+  }
+
+  return {
+    advancePayer: "none",
+    settlementTarget: "none",
+    settlementStatus: "unsettled"
+  };
+}
+
 function PaymentSourceMaster({
   paymentSources,
+  isOpen,
+  onToggle,
   onAdd,
   onUpdate,
   onDelete
 }: {
   paymentSources: PaymentSource[];
+  isOpen: boolean;
+  onToggle: () => void;
   onAdd: () => void;
   onUpdate: (sourceId: string, patch: Partial<PaymentSource>) => void;
   onDelete: (sourceId: string) => void;
@@ -552,14 +669,31 @@ function PaymentSourceMaster({
     <section className="border border-line bg-white">
       <div className="flex items-center justify-between border-b border-line bg-slate-50 p-3">
         <h2 className="text-sm font-semibold">支払い元マスタ</h2>
-        <button
-          type="button"
-          onClick={onAdd}
-          className="h-9 border border-slate-500 bg-ink px-3 text-sm font-medium text-white hover:bg-slate-700"
-        >
-          支払い元追加
-        </button>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={onToggle}
+            className="h-9 border border-slate-500 bg-white px-3 text-sm font-medium hover:bg-slate-50"
+          >
+            {isOpen ? "支払い元マスタを閉じる" : "支払い元マスタを開く"}
+          </button>
+          {isOpen ? (
+            <button
+              type="button"
+              onClick={onAdd}
+              className="h-9 border border-slate-500 bg-ink px-3 text-sm font-medium text-white hover:bg-slate-700"
+            >
+              支払い元追加
+            </button>
+          ) : null}
+        </div>
       </div>
+      {!isOpen ? (
+        <div className="px-3 py-3 text-sm text-slate-600">
+          {paymentSources.length}件の支払い元を登録済みです。
+        </div>
+      ) : null}
+      {isOpen ? (
       <div className="overflow-x-auto">
         <table className="min-w-[520px] table-fixed border-collapse text-sm">
           <colgroup>
@@ -599,6 +733,7 @@ function PaymentSourceMaster({
           </tbody>
         </table>
       </div>
+      ) : null}
     </section>
   );
 }

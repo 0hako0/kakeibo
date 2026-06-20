@@ -24,6 +24,10 @@ export type BurdenType =
   | "household_advanced_by_husband"
   | "household_advanced_by_wife";
 
+export type AdvancePayer = "none" | "husband" | "wife";
+export type SettlementTarget = "none" | "husband" | "wife" | "household";
+export type SettlementStatus = "unsettled" | "partially_settled" | "settled";
+
 export type PaymentSource = {
   id: string;
   name: string;
@@ -37,6 +41,9 @@ export type MonthlyRow = {
   amount: number;
   paymentSourceId: string;
   burdenType: BurdenType;
+  advancePayer: AdvancePayer;
+  settlementTarget: SettlementTarget;
+  settlementStatus: SettlementStatus;
   memo: string;
   sortOrder: number;
   cardDetails: CardDetail[];
@@ -76,6 +83,11 @@ export type MonthlySummary = {
   householdBurdenTotal: number;
   husbandBurdenTotal: number;
   wifeBurdenTotal: number;
+  husbandAdvanceTotal: number;
+  wifeAdvanceTotal: number;
+  amountToSettleToHusband: number;
+  amountToSettleToWife: number;
+  householdBalanceAfterSettlement: number;
 };
 
 export const rowTypeLabels: Record<RowType, string> = {
@@ -134,6 +146,35 @@ export const burdenTypeOptions: BurdenType[] = [
   "wife",
   "household_advanced_by_husband",
   "household_advanced_by_wife"
+];
+
+export const advancePayerLabels: Record<AdvancePayer, string> = {
+  none: "-",
+  husband: "夫",
+  wife: "妻"
+};
+
+export const advancePayerOptions: AdvancePayer[] = ["none", "husband", "wife"];
+
+export const settlementTargetLabels: Record<SettlementTarget, string> = {
+  none: "-",
+  husband: "夫へ精算",
+  wife: "妻へ精算",
+  household: "家計へ精算"
+};
+
+export const settlementTargetOptions: SettlementTarget[] = ["none", "husband", "wife", "household"];
+
+export const settlementStatusLabels: Record<SettlementStatus, string> = {
+  unsettled: "未精算",
+  partially_settled: "一部精算",
+  settled: "精算済み"
+};
+
+export const settlementStatusOptions: SettlementStatus[] = [
+  "unsettled",
+  "partially_settled",
+  "settled"
 ];
 
 export const defaultPaymentSourceNames = [

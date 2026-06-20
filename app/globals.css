@@ -31,3 +31,11 @@ button {
 .sheet-header {
   @apply border-b border-r border-line bg-slate-100 px-2 py-2 text-left text-xs font-semibold text-slate-700;
 }
+
+.advance-row .sheet-cell {
+  @apply bg-amber-50;
+}
+
+.advance-row .sheet-cell:first-child {
+  @apply border-l-4 border-l-amber-400;
+}

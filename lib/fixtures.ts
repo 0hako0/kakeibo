@@ -29,6 +29,9 @@ export function createInitialSheet(yearMonth: string): MonthlySheet {
         amount: 350000,
         paymentSourceId: householdAccount,
         burdenType: "household",
+        advancePayer: "none",
+        settlementTarget: "none",
+        settlementStatus: "unsettled",
         memo: "今月給与",
         sortOrder: 0,
         cardDetails: []
@@ -40,6 +43,9 @@ export function createInitialSheet(yearMonth: string): MonthlySheet {
         amount: 80000,
         paymentSourceId: householdAccount,
         burdenType: "household",
+        advancePayer: "none",
+        settlementTarget: "none",
+        settlementStatus: "unsettled",
         memo: "マンション家賃",
         sortOrder: 1,
         cardDetails: []
@@ -51,6 +57,9 @@ export function createInitialSheet(yearMonth: string): MonthlySheet {
         amount: 52000,
         paymentSourceId: householdAccount,
         burdenType: "household",
+        advancePayer: "none",
+        settlementTarget: "none",
+        settlementStatus: "unsettled",
         memo: "先月利用分",
         sortOrder: 2,
         cardDetails: [
@@ -67,6 +76,9 @@ export function createInitialSheet(yearMonth: string): MonthlySheet {
         amount: 89000,
         paymentSourceId: householdAccount,
         burdenType: "household",
+        advancePayer: "none",
+        settlementTarget: "none",
+        settlementStatus: "unsettled",
         memo: "先月利用分",
         sortOrder: 3,
         cardDetails: []
@@ -78,6 +90,9 @@ export function createInitialSheet(yearMonth: string): MonthlySheet {
         amount: 30000,
         paymentSourceId: householdAccount,
         burdenType: "household",
+        advancePayer: "none",
+        settlementTarget: "none",
+        settlementStatus: "unsettled",
         memo: "積立",
         sortOrder: 4,
         cardDetails: []
@@ -89,6 +104,9 @@ export function createInitialSheet(yearMonth: string): MonthlySheet {
         amount: 12000,
         paymentSourceId: householdAccount,
         burdenType: "household",
+        advancePayer: "none",
+        settlementTarget: "none",
+        settlementStatus: "unsettled",
         memo: "生命保険",
         sortOrder: 5,
         cardDetails: []
