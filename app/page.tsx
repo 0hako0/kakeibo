@@ -111,6 +111,26 @@ export default function Home() {
     }));
   }
 
+  function deleteRow(rowId: string) {
+    const row = sheet.rows.find((item) => item.id === rowId);
+    const label = row?.item || rowTypeLabels[row?.type ?? "other_expense"];
+
+    if (!window.confirm(`${label} の行を削除しますか？`)) {
+      return;
+    }
+
+    if (activeCardRowId === rowId) {
+      setActiveCardRowId(null);
+    }
+
+    updateSheet((current) => ({
+      ...current,
+      rows: current.rows
+        .filter((item) => item.id !== rowId)
+        .map((item, index) => ({ ...item, sortOrder: index }))
+    }));
+  }
+
   function updatePreviousMonthBalance(value: string) {
     updateSheet((current) => ({
       ...current,
@@ -151,6 +171,26 @@ export default function Home() {
               cardDetails: row.cardDetails.map((detail) =>
                 detail.id === detailId ? { ...detail, ...patch } : detail
               )
+            }
+          : row
+      )
+    }));
+  }
+
+  function deleteCardDetail(rowId: string, detailId: string) {
+    if (!window.confirm("この明細行を削除しますか？")) {
+      return;
+    }
+
+    updateSheet((current) => ({
+      ...current,
+      rows: current.rows.map((row) =>
+        row.id === rowId
+          ? {
+              ...row,
+              cardDetails: row.cardDetails
+                .filter((detail) => detail.id !== detailId)
+                .map((detail, index) => ({ ...detail, sortOrder: index }))
             }
           : row
       )
@@ -248,6 +288,7 @@ export default function Home() {
                 <col className="w-36" />
                 <col className="w-[22rem]" />
                 <col className="w-32" />
+                <col className="w-24" />
               </colgroup>
               <thead>
                 <tr>
@@ -256,6 +297,7 @@ export default function Home() {
                   <th className="sheet-header">金額</th>
                   <th className="sheet-header">メモ</th>
                   <th className="sheet-header">内訳あり</th>
+                  <th className="sheet-header">操作</th>
                 </tr>
               </thead>
               <tbody>
@@ -313,6 +355,15 @@ export default function Home() {
                         <span className="text-xs text-slate-400">-</span>
                       )}
                     </td>
+                    <td className="sheet-cell px-2">
+                      <button
+                        type="button"
+                        onClick={() => deleteRow(row.id)}
+                        className="h-8 w-full border border-rose-300 bg-white text-xs font-semibold text-rose-700 hover:bg-rose-50"
+                      >
+                        削除
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -324,6 +375,7 @@ export default function Home() {
           row={activeCardRow}
           onAddDetail={addCardDetail}
           onUpdateDetail={updateCardDetail}
+          onDeleteDetail={deleteCardDetail}
         />
       </div>
     </main>
@@ -352,11 +404,13 @@ function SummaryItem({
 function CardDetailPanel({
   row,
   onAddDetail,
-  onUpdateDetail
+  onUpdateDetail,
+  onDeleteDetail
 }: {
   row: MonthlyRow | undefined;
   onAddDetail: (rowId: string) => void;
   onUpdateDetail: (rowId: string, detailId: string, patch: Partial<CardDetail>) => void;
+  onDeleteDetail: (rowId: string, detailId: string) => void;
 }) {
   if (!row) {
     return (
@@ -404,12 +458,14 @@ function CardDetailPanel({
             <col className="w-48" />
             <col className="w-40" />
             <col className="w-[28rem]" />
+            <col className="w-24" />
           </colgroup>
           <thead>
             <tr>
               <th className="sheet-header">カテゴリ</th>
               <th className="sheet-header">金額</th>
               <th className="sheet-header">メモ</th>
+              <th className="sheet-header">操作</th>
             </tr>
           </thead>
           <tbody>
@@ -452,6 +508,15 @@ function CardDetailPanel({
                     }
                     className="sheet-input"
                   />
+                </td>
+                <td className="sheet-cell px-2">
+                  <button
+                    type="button"
+                    onClick={() => onDeleteDetail(row.id, detail.id)}
+                    className="h-8 w-full border border-rose-300 bg-white text-xs font-semibold text-rose-700 hover:bg-rose-50"
+                  >
+                    削除
+                  </button>
                 </td>
               </tr>
             ))}
