@@ -1,6 +1,8 @@
+import { calculateSummary } from "./calculations";
 import { cardCategoryLabels, rowTypeLabels, type MonthlySheet } from "./types";
 
 export function monthlySheetToCsv(sheet: MonthlySheet) {
+  const summary = calculateSummary(sheet.rows, sheet.previousMonthBalance);
   const lines = [
     ["年月", "区分", "項目", "金額", "メモ", "内訳あり"],
     ...sheet.rows.map((row) => [
@@ -10,7 +12,17 @@ export function monthlySheetToCsv(sheet: MonthlySheet) {
       String(row.amount),
       row.memo,
       row.cardDetails.length > 0 ? "あり" : ""
-    ])
+    ]),
+    [],
+    ["年月", "集計項目", "金額", "", "", ""],
+    [sheet.yearMonth, "収入合計", String(summary.incomeTotal), "", "", ""],
+    [sheet.yearMonth, "収入控除合計", String(summary.incomeDeductionTotal), "", "", ""],
+    [sheet.yearMonth, "支出合計", String(summary.expenseTotal), "", "", ""],
+    [sheet.yearMonth, "カード引落合計", String(summary.cardPaymentTotal), "", "", ""],
+    [sheet.yearMonth, "投資合計", String(summary.investmentTotal), "", "", ""],
+    [sheet.yearMonth, "月間残高", String(summary.monthlyBalance), "", "", ""],
+    [sheet.yearMonth, "前月比", String(summary.previousDiff), "", "", ""],
+    [sheet.yearMonth, "貯金できた金額", String(summary.savedAmount), "", "", ""]
   ];
 
   return toCsv(lines);
