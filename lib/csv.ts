@@ -1,6 +1,5 @@
 import { calculateSummary } from "./calculations";
 import {
-  advancePayerLabels,
   burdenTypeLabels,
   cardCategoryLabels,
   rowTypeLabels,
@@ -19,7 +18,6 @@ export function monthlySheetToCsv(sheet: MonthlySheet) {
       "金額",
       "支払い元",
       "負担区分",
-      "立替者",
       "精算先",
       "精算状態",
       "メモ",
@@ -32,14 +30,13 @@ export function monthlySheetToCsv(sheet: MonthlySheet) {
       String(row.amount),
       sheet.paymentSources.find((source) => source.id === row.paymentSourceId)?.name ?? "",
       burdenTypeLabels[row.burdenType],
-      advancePayerLabels[row.advancePayer],
       settlementTargetLabels[row.settlementTarget],
       settlementStatusLabels[row.settlementStatus],
       row.memo,
       row.cardDetails.length > 0 ? "あり" : ""
     ]),
     [],
-    ["年月", "集計項目", "金額", "", "", "", "", "", "", "", ""],
+    ["年月", "集計項目", "金額", "", "", "", "", "", "", ""],
     summaryLine(sheet.yearMonth, "収入合計", summary.incomeTotal),
     summaryLine(sheet.yearMonth, "収入控除合計", summary.incomeDeductionTotal),
     summaryLine(sheet.yearMonth, "家計支出合計", summary.expenseTotal),
@@ -78,7 +75,7 @@ export function monthlySheetToCsv(sheet: MonthlySheet) {
 
 export function cardDetailsToCsv(sheet: MonthlySheet) {
   const lines = [
-    ["年月", "カード", "支払い元", "負担区分", "立替者", "精算先", "精算状態", "カテゴリ", "金額", "メモ"]
+    ["年月", "カード", "支払い元", "負担区分", "精算先", "精算状態", "カテゴリ", "金額", "メモ"]
   ];
 
   sheet.rows
@@ -90,7 +87,6 @@ export function cardDetailsToCsv(sheet: MonthlySheet) {
           row.item,
           sheet.paymentSources.find((source) => source.id === row.paymentSourceId)?.name ?? "",
           burdenTypeLabels[row.burdenType],
-          advancePayerLabels[row.advancePayer],
           settlementTargetLabels[row.settlementTarget],
           settlementStatusLabels[row.settlementStatus],
           cardCategoryLabels[detail.category],

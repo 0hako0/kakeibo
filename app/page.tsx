@@ -9,8 +9,6 @@ import { createId } from "@/lib/ids";
 import { normalizeSheet } from "@/lib/normalize";
 import { loadSheets, saveSheets } from "@/lib/storage";
 import {
-  advancePayerLabels,
-  advancePayerOptions,
   burdenTypeLabels,
   burdenTypeOptions,
   cardCategoryLabels,
@@ -21,7 +19,6 @@ import {
   settlementStatusOptions,
   settlementTargetLabels,
   settlementTargetOptions,
-  type AdvancePayer,
   type BurdenType,
   type CardDetail,
   type MonthlyRow,
@@ -384,14 +381,13 @@ export default function Home() {
           </div>
 
           <div className="overflow-x-auto">
-            <table className="min-w-[1660px] table-fixed border-collapse text-sm">
+            <table className="min-w-[1520px] table-fixed border-collapse text-sm">
               <colgroup>
                 <col className="w-36" />
                 <col className="w-56" />
                 <col className="w-36" />
                 <col className="w-48" />
                 <col className="w-52" />
-                <col className="w-32" />
                 <col className="w-40" />
                 <col className="w-32" />
                 <col className="w-[22rem]" />
@@ -405,7 +401,6 @@ export default function Home() {
                   <th className="sheet-header">金額</th>
                   <th className="sheet-header">支払い元</th>
                   <th className="sheet-header">負担区分</th>
-                  <th className="sheet-header">立替者</th>
                   <th className="sheet-header">精算先</th>
                   <th className="sheet-header">精算状態</th>
                   <th className="sheet-header">メモ</th>
@@ -480,21 +475,6 @@ export default function Home() {
                         {burdenTypeOptions.map((burden) => (
                           <option key={burden} value={burden}>
                             {burdenTypeLabels[burden]}
-                          </option>
-                        ))}
-                      </select>
-                    </td>
-                    <td className="sheet-cell">
-                      <select
-                        value={row.advancePayer}
-                        onChange={(event) =>
-                          updateRow(row.id, { advancePayer: event.target.value as AdvancePayer })
-                        }
-                        className="sheet-input"
-                      >
-                        {advancePayerOptions.map((payer) => (
-                          <option key={payer} value={payer}>
-                            {advancePayerLabels[payer]}
                           </option>
                         ))}
                       </select>

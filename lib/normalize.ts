@@ -31,9 +31,8 @@ function normalizeRow(row: MonthlyRow, defaultPaymentSourceId: string): MonthlyR
     ...row,
     paymentSourceId: row.paymentSourceId || defaultPaymentSourceId,
     burdenType,
-    advancePayer: row.advancePayer || (isHusbandAdvance ? "husband" : isWifeAdvance ? "wife" : "none"),
-    settlementTarget:
-      row.settlementTarget || (isHusbandAdvance ? "husband" : isWifeAdvance ? "wife" : "none"),
+    advancePayer: isHusbandAdvance ? "husband" : isWifeAdvance ? "wife" : "none",
+    settlementTarget: isHusbandAdvance ? "husband" : isWifeAdvance ? "wife" : "none",
     settlementStatus: row.settlementStatus || "unsettled",
     cardDetails: row.cardDetails ?? []
   };
