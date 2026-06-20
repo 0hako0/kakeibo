@@ -2,6 +2,7 @@ create extension if not exists pgcrypto;
 
 create type monthly_row_type as enum (
   'income',
+  'income_deduction',
   'fixed_expense',
   'card_payment',
   'investment',

@@ -1,5 +1,6 @@
 export type RowType =
   | "income"
+  | "income_deduction"
   | "fixed_expense"
   | "card_payment"
   | "investment"
@@ -44,6 +45,7 @@ export type MonthlySheet = {
 
 export type MonthlySummary = {
   incomeTotal: number;
+  incomeDeductionTotal: number;
   expenseTotal: number;
   cardPaymentTotal: number;
   investmentTotal: number;
@@ -54,6 +56,7 @@ export type MonthlySummary = {
 
 export const rowTypeLabels: Record<RowType, string> = {
   income: "収入",
+  income_deduction: "収入控除",
   fixed_expense: "固定支出",
   card_payment: "カード引落",
   investment: "投資",
@@ -62,6 +65,7 @@ export const rowTypeLabels: Record<RowType, string> = {
 
 export const rowTypeOptions: RowType[] = [
   "income",
+  "income_deduction",
   "fixed_expense",
   "card_payment",
   "investment",

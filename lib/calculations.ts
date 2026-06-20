@@ -2,6 +2,7 @@ import type { MonthlyRow, MonthlySummary } from "./types";
 
 export function calculateSummary(rows: MonthlyRow[], previousMonthBalance: number): MonthlySummary {
   const incomeTotal = sumByType(rows, ["income"]);
+  const incomeDeductionTotal = sumByType(rows, ["income_deduction"]);
   const cardPaymentTotal = sumByType(rows, ["card_payment"]);
   const investmentTotal = sumByType(rows, ["investment"]);
   const expenseTotal = sumByType(rows, [
@@ -10,10 +11,11 @@ export function calculateSummary(rows: MonthlyRow[], previousMonthBalance: numbe
     "investment",
     "other_expense"
   ]);
-  const monthlyBalance = incomeTotal - expenseTotal;
+  const monthlyBalance = incomeTotal - incomeDeductionTotal - expenseTotal;
 
   return {
     incomeTotal,
+    incomeDeductionTotal,
     expenseTotal,
     cardPaymentTotal,
     investmentTotal,

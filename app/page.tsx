@@ -246,8 +246,9 @@ export default function Home() {
           </div>
         </header>
 
-        <section className="grid gap-2 border border-line bg-white p-3 md:grid-cols-4 lg:grid-cols-7">
+        <section className="grid gap-2 border border-line bg-white p-3 md:grid-cols-4 lg:grid-cols-8">
           <SummaryItem label="収入合計" value={summary.incomeTotal} />
+          <SummaryItem label="収入控除合計" value={summary.incomeDeductionTotal} />
           <SummaryItem label="支出合計" value={summary.expenseTotal} />
           <SummaryItem label="カード引落合計" value={summary.cardPaymentTotal} />
           <SummaryItem label="投資合計" value={summary.investmentTotal} />
