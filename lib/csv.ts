@@ -11,8 +11,77 @@ import {
 export function monthlySheetToCsv(sheet: MonthlySheet) {
   const summary = calculateSummary(sheet.rows, sheet.previousMonthBalance, sheet.paymentSources);
   const lines = [
+    ["月末家計簿", "", "", "", "", "", "", "", "", ""],
+    ["年月", sheet.yearMonth, "", "", "", "", "", "", "", ""],
+    [],
     [
-      "年月",
+      "収入合計",
+      "収入控除合計",
+      "家計支出合計",
+      "カード引落合計",
+      "投資合計",
+      "月間残高",
+      "前月比",
+      "貯金できた金額",
+      "",
+      ""
+    ],
+    [
+      String(summary.incomeTotal),
+      String(summary.incomeDeductionTotal),
+      String(summary.expenseTotal),
+      String(summary.cardPaymentTotal),
+      String(summary.investmentTotal),
+      String(summary.monthlyBalance),
+      String(summary.previousDiff),
+      String(summary.savedAmount),
+      "",
+      ""
+    ],
+    [],
+    ["支払い元・負担集計", "", "", "", "", "", "", "", "", ""],
+    [
+      "家計負担額",
+      "夫負担額",
+      "妻負担額",
+      "夫立替合計",
+      "妻立替合計",
+      "精算後の家計残高",
+      "夫へ精算すべき金額",
+      "妻へ精算すべき金額",
+      "",
+      ""
+    ],
+    [
+      String(summary.householdBurdenTotal),
+      String(summary.husbandBurdenTotal),
+      String(summary.wifeBurdenTotal),
+      String(summary.husbandAdvanceTotal),
+      String(summary.wifeAdvanceTotal),
+      String(summary.householdBalanceAfterSettlement),
+      String(summary.amountToSettleToHusband),
+      String(summary.amountToSettleToWife),
+      "",
+      ""
+    ],
+    [],
+    ["支払い元", "支出合計", "", "", "", "", "", "", "", ""],
+    ...summary.paymentSourceExpenseTotals.map((source) => [
+      source.paymentSourceName,
+      String(source.amount),
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      ""
+    ]),
+    [],
+    ["月次シート", "", "", "", "", "", "", "", "", ""],
+    ["前月残高", String(sheet.previousMonthBalance), "", "", "", "", "", "", "", ""],
+    [
       "区分",
       "項目",
       "金額",
@@ -24,7 +93,6 @@ export function monthlySheetToCsv(sheet: MonthlySheet) {
       "内訳あり"
     ],
     ...sheet.rows.map((row) => [
-      sheet.yearMonth,
       rowTypeLabels[row.type],
       row.item,
       String(row.amount),
@@ -34,39 +102,6 @@ export function monthlySheetToCsv(sheet: MonthlySheet) {
       settlementStatusLabels[row.settlementStatus],
       row.memo,
       row.cardDetails.length > 0 ? "あり" : ""
-    ]),
-    [],
-    ["年月", "集計項目", "金額", "", "", "", "", "", "", ""],
-    summaryLine(sheet.yearMonth, "収入合計", summary.incomeTotal),
-    summaryLine(sheet.yearMonth, "収入控除合計", summary.incomeDeductionTotal),
-    summaryLine(sheet.yearMonth, "家計支出合計", summary.expenseTotal),
-    summaryLine(sheet.yearMonth, "カード引落合計", summary.cardPaymentTotal),
-    summaryLine(sheet.yearMonth, "投資合計", summary.investmentTotal),
-    summaryLine(sheet.yearMonth, "月間残高", summary.monthlyBalance),
-    summaryLine(sheet.yearMonth, "前月比", summary.previousDiff),
-    summaryLine(sheet.yearMonth, "貯金できた金額", summary.savedAmount),
-    summaryLine(sheet.yearMonth, "家計負担額", summary.householdBurdenTotal),
-    summaryLine(sheet.yearMonth, "夫負担額", summary.husbandBurdenTotal),
-    summaryLine(sheet.yearMonth, "妻負担額", summary.wifeBurdenTotal),
-    summaryLine(sheet.yearMonth, "夫立替合計", summary.husbandAdvanceTotal),
-    summaryLine(sheet.yearMonth, "妻立替合計", summary.wifeAdvanceTotal),
-    summaryLine(sheet.yearMonth, "夫へ精算すべき金額", summary.amountToSettleToHusband),
-    summaryLine(sheet.yearMonth, "妻へ精算すべき金額", summary.amountToSettleToWife),
-    summaryLine(sheet.yearMonth, "精算後の家計残高", summary.householdBalanceAfterSettlement),
-    [],
-    ["年月", "支払い元別支出合計", "金額", "", "", "", "", "", "", "", ""],
-    ...summary.paymentSourceExpenseTotals.map((source) => [
-      sheet.yearMonth,
-      source.paymentSourceName,
-      String(source.amount),
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      ""
     ])
   ];
 
@@ -111,10 +146,6 @@ export function downloadCsv(filename: string, csv: string) {
 
 function toCsv(lines: string[][]) {
   return lines.map((line) => line.map(escapeCell).join(",")).join("\n");
-}
-
-function summaryLine(yearMonth: string, label: string, amount: number) {
-  return [yearMonth, label, String(amount), "", "", "", "", "", "", "", ""];
 }
 
 function escapeCell(value: string) {
