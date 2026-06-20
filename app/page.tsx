@@ -26,6 +26,7 @@ import {
   type CardDetail,
   type MonthlyRow,
   type MonthlySheet,
+  type MonthlySummary,
   type PaymentSource,
   type RowType,
   type SettlementStatus,
@@ -38,6 +39,7 @@ export default function Home() {
   const [sheets, setSheets] = useState<Record<string, MonthlySheet>>({});
   const [activeCardRowId, setActiveCardRowId] = useState<string | null>(null);
   const [isPaymentSourceMasterOpen, setIsPaymentSourceMasterOpen] = useState(false);
+  const [isBurdenSummaryOpen, setIsBurdenSummaryOpen] = useState(false);
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
@@ -324,63 +326,37 @@ export default function Home() {
           <SummaryItem label="貯金できた金額" value={summary.savedAmount} />
         </section>
 
-        <section className="grid gap-4 lg:grid-cols-[1.1fr_1fr]">
-          <PaymentSourceMaster
-            paymentSources={sheet.paymentSources}
-            isOpen={isPaymentSourceMasterOpen}
-            onToggle={() => setIsPaymentSourceMasterOpen((current) => !current)}
-            onAdd={addPaymentSource}
-            onUpdate={updatePaymentSource}
-            onDelete={deletePaymentSource}
-          />
+        <section className="space-y-2">
+          {!isPaymentSourceMasterOpen ? (
+            <CompactToggleRow title="支払い元マスタ" buttonLabel="支払い元マスタを開く" onClick={() => setIsPaymentSourceMasterOpen(true)} />
+          ) : null}
+          {!isBurdenSummaryOpen ? (
+            <CompactToggleRow title="支払い元・負担集計" buttonLabel="集計を開く" onClick={() => setIsBurdenSummaryOpen(true)} />
+          ) : null}
 
-          <section className="border border-line bg-white">
-            <div className="border-b border-line bg-slate-50 px-3 py-2 text-sm font-semibold">
-              支払い元・負担集計
+          {isPaymentSourceMasterOpen || isBurdenSummaryOpen ? (
+            <div
+              className={
+                isPaymentSourceMasterOpen && isBurdenSummaryOpen
+                  ? "grid gap-4 lg:grid-cols-[1.1fr_1fr]"
+                  : "grid gap-4"
+              }
+            >
+              {isPaymentSourceMasterOpen ? (
+                <PaymentSourceMaster
+                  paymentSources={sheet.paymentSources}
+                  onClose={() => setIsPaymentSourceMasterOpen(false)}
+                  onAdd={addPaymentSource}
+                  onUpdate={updatePaymentSource}
+                  onDelete={deletePaymentSource}
+                />
+              ) : null}
+
+              {isBurdenSummaryOpen ? (
+                <BurdenSummary summary={summary} onClose={() => setIsBurdenSummaryOpen(false)} />
+              ) : null}
             </div>
-            <div className="grid gap-2 p-3 md:grid-cols-3">
-              <SummaryItem label="家計負担額" value={summary.householdBurdenTotal} />
-              <SummaryItem label="夫負担額" value={summary.husbandBurdenTotal} />
-              <SummaryItem label="妻負担額" value={summary.wifeBurdenTotal} />
-              <SummaryItem label="夫立替合計" value={summary.husbandAdvanceTotal} />
-              <SummaryItem label="妻立替合計" value={summary.wifeAdvanceTotal} />
-              <SummaryItem label="精算後の家計残高" value={summary.householdBalanceAfterSettlement} emphasize />
-              <SummaryItem label="夫へ精算すべき金額" value={summary.amountToSettleToHusband} />
-              <SummaryItem label="妻へ精算すべき金額" value={summary.amountToSettleToWife} />
-            </div>
-            <div className="overflow-x-auto px-3 pb-3">
-              <table className="min-w-[420px] table-fixed border-collapse text-sm">
-                <colgroup>
-                  <col className="w-64" />
-                  <col className="w-40" />
-                </colgroup>
-                <thead>
-                  <tr>
-                    <th className="sheet-header">支払い元</th>
-                    <th className="sheet-header">支出合計</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {summary.paymentSourceExpenseTotals.length === 0 ? (
-                    <tr>
-                      <td className="sheet-cell px-2 py-2 text-slate-500" colSpan={2}>
-                        支出はまだありません。
-                      </td>
-                    </tr>
-                  ) : (
-                    summary.paymentSourceExpenseTotals.map((source) => (
-                      <tr key={source.paymentSourceId}>
-                        <td className="sheet-cell px-2 py-2">{source.paymentSourceName}</td>
-                        <td className="sheet-cell px-2 py-2 text-right tabular-nums">
-                          {formatCurrency(source.amount)}
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </section>
+          ) : null}
         </section>
 
         <section className="border border-line bg-white">
@@ -650,17 +626,38 @@ function getSettlementDefaults(burdenType: BurdenType): Pick<
   };
 }
 
+function CompactToggleRow({
+  title,
+  buttonLabel,
+  onClick
+}: {
+  title: string;
+  buttonLabel: string;
+  onClick: () => void;
+}) {
+  return (
+    <div className="flex min-h-0 items-center justify-between bg-transparent py-1">
+      <h2 className="text-sm font-semibold">{title}</h2>
+      <button
+        type="button"
+        onClick={onClick}
+        className="h-9 border border-slate-500 bg-white px-3 text-sm font-medium hover:bg-slate-50"
+      >
+        {buttonLabel}
+      </button>
+    </div>
+  );
+}
+
 function PaymentSourceMaster({
   paymentSources,
-  isOpen,
-  onToggle,
+  onClose,
   onAdd,
   onUpdate,
   onDelete
 }: {
   paymentSources: PaymentSource[];
-  isOpen: boolean;
-  onToggle: () => void;
+  onClose: () => void;
   onAdd: () => void;
   onUpdate: (sourceId: string, patch: Partial<PaymentSource>) => void;
   onDelete: (sourceId: string) => void;
@@ -672,28 +669,20 @@ function PaymentSourceMaster({
         <div className="flex gap-2">
           <button
             type="button"
-            onClick={onToggle}
+            onClick={onClose}
             className="h-9 border border-slate-500 bg-white px-3 text-sm font-medium hover:bg-slate-50"
           >
-            {isOpen ? "支払い元マスタを閉じる" : "支払い元マスタを開く"}
+            支払い元マスタを閉じる
           </button>
-          {isOpen ? (
-            <button
-              type="button"
-              onClick={onAdd}
-              className="h-9 border border-slate-500 bg-ink px-3 text-sm font-medium text-white hover:bg-slate-700"
-            >
-              支払い元追加
-            </button>
-          ) : null}
+          <button
+            type="button"
+            onClick={onAdd}
+            className="h-9 border border-slate-500 bg-ink px-3 text-sm font-medium text-white hover:bg-slate-700"
+          >
+            支払い元追加
+          </button>
         </div>
       </div>
-      {!isOpen ? (
-        <div className="px-3 py-3 text-sm text-slate-600">
-          {paymentSources.length}件の支払い元を登録済みです。
-        </div>
-      ) : null}
-      {isOpen ? (
       <div className="overflow-x-auto">
         <table className="min-w-[520px] table-fixed border-collapse text-sm">
           <colgroup>
@@ -733,7 +722,71 @@ function PaymentSourceMaster({
           </tbody>
         </table>
       </div>
-      ) : null}
+    </section>
+  );
+}
+
+function BurdenSummary({
+  summary,
+  onClose
+}: {
+  summary: MonthlySummary;
+  onClose: () => void;
+}) {
+  return (
+    <section className="border border-line bg-white">
+      <div className="flex items-center justify-between border-b border-line bg-slate-50 p-3">
+        <h2 className="text-sm font-semibold">支払い元・負担集計</h2>
+        <button
+          type="button"
+          onClick={onClose}
+          className="h-9 border border-slate-500 bg-white px-3 text-sm font-medium hover:bg-slate-50"
+        >
+          集計を閉じる
+        </button>
+      </div>
+      <div className="grid gap-2 p-3 md:grid-cols-3">
+        <SummaryItem label="家計負担額" value={summary.householdBurdenTotal} />
+        <SummaryItem label="夫負担額" value={summary.husbandBurdenTotal} />
+        <SummaryItem label="妻負担額" value={summary.wifeBurdenTotal} />
+        <SummaryItem label="夫立替合計" value={summary.husbandAdvanceTotal} />
+        <SummaryItem label="妻立替合計" value={summary.wifeAdvanceTotal} />
+        <SummaryItem label="精算後の家計残高" value={summary.householdBalanceAfterSettlement} emphasize />
+        <SummaryItem label="夫へ精算すべき金額" value={summary.amountToSettleToHusband} />
+        <SummaryItem label="妻へ精算すべき金額" value={summary.amountToSettleToWife} />
+      </div>
+      <div className="overflow-x-auto px-3 pb-3">
+        <table className="min-w-[420px] table-fixed border-collapse text-sm">
+          <colgroup>
+            <col className="w-64" />
+            <col className="w-40" />
+          </colgroup>
+          <thead>
+            <tr>
+              <th className="sheet-header">支払い元</th>
+              <th className="sheet-header">支出合計</th>
+            </tr>
+          </thead>
+          <tbody>
+            {summary.paymentSourceExpenseTotals.length === 0 ? (
+              <tr>
+                <td className="sheet-cell px-2 py-2 text-slate-500" colSpan={2}>
+                  支出はまだありません。
+                </td>
+              </tr>
+            ) : (
+              summary.paymentSourceExpenseTotals.map((source) => (
+                <tr key={source.paymentSourceId}>
+                  <td className="sheet-cell px-2 py-2">{source.paymentSourceName}</td>
+                  <td className="sheet-cell px-2 py-2 text-right tabular-nums">
+                    {formatCurrency(source.amount)}
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
     </section>
   );
 }
