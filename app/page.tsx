@@ -8,6 +8,7 @@ import { formatCurrency, parseAmount, thisYearMonth } from "@/lib/format";
 import { createId } from "@/lib/ids";
 import { normalizeSheet } from "@/lib/normalize";
 import { loadSheets, saveSheets } from "@/lib/storage";
+import { downloadMonthlyXlsx } from "@/lib/xlsx";
 import {
   burdenTypeLabels,
   burdenTypeOptions,
@@ -267,6 +268,10 @@ export default function Home() {
     downloadCsv(`monthly-sheet-${sheet.yearMonth}.csv`, monthlySheetToCsv(sheet));
   }
 
+  async function exportMonthlyXlsx() {
+    await downloadMonthlyXlsx(sheet);
+  }
+
   function exportCardCsv() {
     downloadCsv(`card-details-${sheet.yearMonth}.csv`, cardDetailsToCsv(sheet));
   }
@@ -301,6 +306,13 @@ export default function Home() {
               className="h-10 border border-slate-400 bg-white px-3 text-sm font-medium hover:bg-slate-50"
             >
               月次CSV
+            </button>
+            <button
+              type="button"
+              onClick={exportMonthlyXlsx}
+              className="h-10 border border-slate-400 bg-white px-3 text-sm font-medium hover:bg-slate-50"
+            >
+              月次XLSX
             </button>
             <button
               type="button"
