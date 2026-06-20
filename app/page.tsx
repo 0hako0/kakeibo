@@ -309,6 +309,13 @@ export default function Home() {
             >
               カードCSV
             </button>
+            <button
+              type="button"
+              onClick={() => setIsPaymentSourceMasterOpen(true)}
+              className="h-10 border border-slate-400 bg-white px-3 text-sm font-medium hover:bg-slate-50"
+            >
+              支払い元マスタ
+            </button>
           </div>
         </header>
 
@@ -324,9 +331,6 @@ export default function Home() {
         </section>
 
         <section className="space-y-2">
-          {!isPaymentSourceMasterOpen ? (
-            <CompactToggleRow title="支払い元マスタ" buttonLabel="支払い元マスタを開く" onClick={() => setIsPaymentSourceMasterOpen(true)} />
-          ) : null}
           {!isBurdenSummaryOpen ? (
             <CompactToggleRow title="支払い元・負担集計" buttonLabel="集計を開く" onClick={() => setIsBurdenSummaryOpen(true)} />
           ) : null}
