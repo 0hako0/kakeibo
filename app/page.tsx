@@ -6,15 +6,20 @@ import { cardDetailsToCsv, downloadCsv, monthlySheetToCsv } from "@/lib/csv";
 import { createInitialSheet } from "@/lib/fixtures";
 import { formatCurrency, parseAmount, thisYearMonth } from "@/lib/format";
 import { createId } from "@/lib/ids";
+import { normalizeSheet } from "@/lib/normalize";
 import { loadSheets, saveSheets } from "@/lib/storage";
 import {
+  burdenTypeLabels,
+  burdenTypeOptions,
   cardCategoryLabels,
   cardCategoryOptions,
   rowTypeLabels,
   rowTypeOptions,
+  type BurdenType,
   type CardDetail,
   type MonthlyRow,
   type MonthlySheet,
+  type PaymentSource,
   type RowType
 } from "@/lib/types";
 import { calculateCardDetailTotal } from "@/lib/calculations";
@@ -31,12 +36,12 @@ export default function Home() {
   }, []);
 
   const sheet = useMemo(() => {
-    return sheets[yearMonth] ?? createInitialSheet(yearMonth);
+    return normalizeSheet(sheets[yearMonth] ?? createInitialSheet(yearMonth));
   }, [sheets, yearMonth]);
 
   const summary = useMemo(
-    () => calculateSummary(sheet.rows, sheet.previousMonthBalance),
-    [sheet.previousMonthBalance, sheet.rows]
+    () => calculateSummary(sheet.rows, sheet.previousMonthBalance, sheet.paymentSources),
+    [sheet.paymentSources, sheet.previousMonthBalance, sheet.rows]
   );
 
   const activeCardRow = sheet.rows.find((row) => row.id === activeCardRowId && row.type === "card_payment");
@@ -62,7 +67,7 @@ export default function Home() {
 
   function updateSheet(updater: (current: MonthlySheet) => MonthlySheet) {
     setSheets((current) => {
-      const currentSheet = current[yearMonth] ?? createInitialSheet(yearMonth);
+      const currentSheet = normalizeSheet(current[yearMonth] ?? createInitialSheet(yearMonth));
       const nextSheet = {
         ...updater(currentSheet),
         updatedAt: new Date().toISOString()
@@ -85,11 +90,57 @@ export default function Home() {
           type: "other_expense",
           item: "",
           amount: 0,
+          paymentSourceId: current.paymentSources[0]?.id ?? "",
+          burdenType: "household",
           memo: "",
           sortOrder: current.rows.length,
           cardDetails: []
         }
       ]
+    }));
+  }
+
+  function addPaymentSource() {
+    updateSheet((current) => ({
+      ...current,
+      paymentSources: [
+        ...current.paymentSources,
+        {
+          id: createId("source"),
+          name: "新しい支払い元",
+          sortOrder: current.paymentSources.length
+        }
+      ]
+    }));
+  }
+
+  function updatePaymentSource(sourceId: string, patch: Partial<PaymentSource>) {
+    updateSheet((current) => ({
+      ...current,
+      paymentSources: current.paymentSources.map((source) =>
+        source.id === sourceId ? { ...source, ...patch } : source
+      )
+    }));
+  }
+
+  function deletePaymentSource(sourceId: string) {
+    const source = sheet.paymentSources.find((item) => item.id === sourceId);
+    const isUsed = sheet.rows.some((row) => row.paymentSourceId === sourceId);
+
+    if (isUsed) {
+      window.alert("この支払い元は月次シートで使用中のため削除できません。先に行の支払い元を変更してください。");
+      return;
+    }
+
+    if (!window.confirm(`${source?.name ?? "この支払い元"} を削除しますか？`)) {
+      return;
+    }
+
+    updateSheet((current) => ({
+      ...current,
+      paymentSources: current.paymentSources
+        .filter((item) => item.id !== sourceId)
+        .map((item, index) => ({ ...item, sortOrder: index }))
     }));
   }
 
@@ -257,6 +308,58 @@ export default function Home() {
           <SummaryItem label="貯金できた金額" value={summary.savedAmount} />
         </section>
 
+        <section className="grid gap-4 lg:grid-cols-[1.1fr_1fr]">
+          <PaymentSourceMaster
+            paymentSources={sheet.paymentSources}
+            onAdd={addPaymentSource}
+            onUpdate={updatePaymentSource}
+            onDelete={deletePaymentSource}
+          />
+
+          <section className="border border-line bg-white">
+            <div className="border-b border-line bg-slate-50 px-3 py-2 text-sm font-semibold">
+              支払い元・負担集計
+            </div>
+            <div className="grid gap-2 p-3 md:grid-cols-3">
+              <SummaryItem label="家計負担額" value={summary.householdBurdenTotal} />
+              <SummaryItem label="夫負担額" value={summary.husbandBurdenTotal} />
+              <SummaryItem label="妻負担額" value={summary.wifeBurdenTotal} />
+            </div>
+            <div className="overflow-x-auto px-3 pb-3">
+              <table className="min-w-[420px] table-fixed border-collapse text-sm">
+                <colgroup>
+                  <col className="w-64" />
+                  <col className="w-40" />
+                </colgroup>
+                <thead>
+                  <tr>
+                    <th className="sheet-header">支払い元</th>
+                    <th className="sheet-header">支出合計</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {summary.paymentSourceExpenseTotals.length === 0 ? (
+                    <tr>
+                      <td className="sheet-cell px-2 py-2 text-slate-500" colSpan={2}>
+                        支出はまだありません。
+                      </td>
+                    </tr>
+                  ) : (
+                    summary.paymentSourceExpenseTotals.map((source) => (
+                      <tr key={source.paymentSourceId}>
+                        <td className="sheet-cell px-2 py-2">{source.paymentSourceName}</td>
+                        <td className="sheet-cell px-2 py-2 text-right tabular-nums">
+                          {formatCurrency(source.amount)}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </section>
+
         <section className="border border-line bg-white">
           <div className="flex flex-col gap-2 border-b border-line bg-slate-50 p-3 md:flex-row md:items-center md:justify-between">
             <div className="flex flex-wrap items-center gap-2">
@@ -282,11 +385,13 @@ export default function Home() {
           </div>
 
           <div className="overflow-x-auto">
-            <table className="min-w-[920px] table-fixed border-collapse text-sm">
+            <table className="min-w-[1280px] table-fixed border-collapse text-sm">
               <colgroup>
                 <col className="w-36" />
                 <col className="w-56" />
                 <col className="w-36" />
+                <col className="w-48" />
+                <col className="w-52" />
                 <col className="w-[22rem]" />
                 <col className="w-32" />
                 <col className="w-24" />
@@ -296,6 +401,8 @@ export default function Home() {
                   <th className="sheet-header">区分</th>
                   <th className="sheet-header">項目</th>
                   <th className="sheet-header">金額</th>
+                  <th className="sheet-header">支払い元</th>
+                  <th className="sheet-header">負担区分</th>
                   <th className="sheet-header">メモ</th>
                   <th className="sheet-header">内訳あり</th>
                   <th className="sheet-header">操作</th>
@@ -335,6 +442,34 @@ export default function Home() {
                         }
                         className="sheet-input text-right tabular-nums"
                       />
+                    </td>
+                    <td className="sheet-cell">
+                      <select
+                        value={row.paymentSourceId}
+                        onChange={(event) => updateRow(row.id, { paymentSourceId: event.target.value })}
+                        className="sheet-input"
+                      >
+                        {sheet.paymentSources.map((source) => (
+                          <option key={source.id} value={source.id}>
+                            {source.name}
+                          </option>
+                        ))}
+                      </select>
+                    </td>
+                    <td className="sheet-cell">
+                      <select
+                        value={row.burdenType}
+                        onChange={(event) =>
+                          updateRow(row.id, { burdenType: event.target.value as BurdenType })
+                        }
+                        className="sheet-input"
+                      >
+                        {burdenTypeOptions.map((burden) => (
+                          <option key={burden} value={burden}>
+                            {burdenTypeLabels[burden]}
+                          </option>
+                        ))}
+                      </select>
                     </td>
                     <td className="sheet-cell">
                       <input
@@ -399,6 +534,72 @@ function SummaryItem({
         {formatCurrency(value)}
       </div>
     </div>
+  );
+}
+
+function PaymentSourceMaster({
+  paymentSources,
+  onAdd,
+  onUpdate,
+  onDelete
+}: {
+  paymentSources: PaymentSource[];
+  onAdd: () => void;
+  onUpdate: (sourceId: string, patch: Partial<PaymentSource>) => void;
+  onDelete: (sourceId: string) => void;
+}) {
+  return (
+    <section className="border border-line bg-white">
+      <div className="flex items-center justify-between border-b border-line bg-slate-50 p-3">
+        <h2 className="text-sm font-semibold">支払い元マスタ</h2>
+        <button
+          type="button"
+          onClick={onAdd}
+          className="h-9 border border-slate-500 bg-ink px-3 text-sm font-medium text-white hover:bg-slate-700"
+        >
+          支払い元追加
+        </button>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="min-w-[520px] table-fixed border-collapse text-sm">
+          <colgroup>
+            <col className="w-20" />
+            <col className="w-80" />
+            <col className="w-24" />
+          </colgroup>
+          <thead>
+            <tr>
+              <th className="sheet-header">No.</th>
+              <th className="sheet-header">支払い元名</th>
+              <th className="sheet-header">操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            {paymentSources.map((source, index) => (
+              <tr key={source.id}>
+                <td className="sheet-cell px-2 text-right tabular-nums">{index + 1}</td>
+                <td className="sheet-cell">
+                  <input
+                    value={source.name}
+                    onChange={(event) => onUpdate(source.id, { name: event.target.value })}
+                    className="sheet-input"
+                  />
+                </td>
+                <td className="sheet-cell px-2">
+                  <button
+                    type="button"
+                    onClick={() => onDelete(source.id)}
+                    className="h-8 w-full border border-rose-300 bg-white text-xs font-semibold text-rose-700 hover:bg-rose-50"
+                  >
+                    削除
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
   );
 }
 

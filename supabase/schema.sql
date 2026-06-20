@@ -21,10 +21,27 @@ create type card_detail_category as enum (
   'other'
 );
 
+create type burden_type as enum (
+  'household',
+  'husband',
+  'wife',
+  'household_advanced_by_husband',
+  'household_advanced_by_wife'
+);
+
 create table monthly_sheets (
   id uuid primary key default gen_random_uuid(),
   year_month text not null unique check (year_month ~ '^[0-9]{4}-[0-9]{2}$'),
   previous_month_balance integer not null default 0,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table payment_sources (
+  id uuid primary key default gen_random_uuid(),
+  sheet_id uuid not null references monthly_sheets(id) on delete cascade,
+  name text not null default '',
+  sort_order integer not null default 0,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -35,6 +52,8 @@ create table monthly_rows (
   type monthly_row_type not null,
   item text not null default '',
   amount integer not null default 0,
+  payment_source_id uuid not null references payment_sources(id),
+  burden_type burden_type not null default 'household',
   memo text not null default '',
   sort_order integer not null default 0,
   created_at timestamptz not null default now(),
@@ -52,7 +71,9 @@ create table card_details (
   updated_at timestamptz not null default now()
 );
 
+create index payment_sources_sheet_id_sort_order_idx on payment_sources(sheet_id, sort_order);
 create index monthly_rows_sheet_id_sort_order_idx on monthly_rows(sheet_id, sort_order);
+create index monthly_rows_payment_source_id_idx on monthly_rows(payment_source_id);
 create index card_details_monthly_row_id_sort_order_idx on card_details(monthly_row_id, sort_order);
 
 create or replace function set_updated_at()
@@ -69,6 +90,10 @@ for each row execute function set_updated_at();
 
 create trigger monthly_rows_set_updated_at
 before update on monthly_rows
+for each row execute function set_updated_at();
+
+create trigger payment_sources_set_updated_at
+before update on payment_sources
 for each row execute function set_updated_at();
 
 create trigger card_details_set_updated_at

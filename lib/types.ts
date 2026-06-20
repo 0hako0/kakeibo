@@ -17,11 +17,26 @@ export type CardCategory =
   | "communication"
   | "other";
 
+export type BurdenType =
+  | "household"
+  | "husband"
+  | "wife"
+  | "household_advanced_by_husband"
+  | "household_advanced_by_wife";
+
+export type PaymentSource = {
+  id: string;
+  name: string;
+  sortOrder: number;
+};
+
 export type MonthlyRow = {
   id: string;
   type: RowType;
   item: string;
   amount: number;
+  paymentSourceId: string;
+  burdenType: BurdenType;
   memo: string;
   sortOrder: number;
   cardDetails: CardDetail[];
@@ -39,6 +54,7 @@ export type MonthlySheet = {
   id: string;
   yearMonth: string;
   previousMonthBalance: number;
+  paymentSources: PaymentSource[];
   rows: MonthlyRow[];
   updatedAt: string;
 };
@@ -52,6 +68,14 @@ export type MonthlySummary = {
   monthlyBalance: number;
   previousDiff: number;
   savedAmount: number;
+  paymentSourceExpenseTotals: Array<{
+    paymentSourceId: string;
+    paymentSourceName: string;
+    amount: number;
+  }>;
+  householdBurdenTotal: number;
+  husbandBurdenTotal: number;
+  wifeBurdenTotal: number;
 };
 
 export const rowTypeLabels: Record<RowType, string> = {
@@ -94,4 +118,30 @@ export const cardCategoryOptions: CardCategory[] = [
   "entertainment",
   "communication",
   "other"
+];
+
+export const burdenTypeLabels: Record<BurdenType, string> = {
+  household: "家計負担",
+  husband: "夫負担",
+  wife: "妻負担",
+  household_advanced_by_husband: "家計負担・夫立替",
+  household_advanced_by_wife: "家計負担・妻立替"
+};
+
+export const burdenTypeOptions: BurdenType[] = [
+  "household",
+  "husband",
+  "wife",
+  "household_advanced_by_husband",
+  "household_advanced_by_wife"
+];
+
+export const defaultPaymentSourceNames = [
+  "家計用口座",
+  "家計用カード",
+  "夫の個人口座",
+  "夫の個人カード",
+  "妻の個人口座",
+  "妻の個人カード",
+  "現金"
 ];
