@@ -5,7 +5,7 @@ import { saveSheet } from "@/app/actions";
 import { calculateSummary } from "@/lib/calculations";
 import { cardDetailsToCsv, downloadCsv, monthlySheetToCsv } from "@/lib/csv";
 import { createInitialSheet } from "@/lib/fixtures";
-import { formatCurrency, parseAmount, thisYearMonth } from "@/lib/format";
+import { formatCurrency, parseAmount } from "@/lib/format";
 import { createId } from "@/lib/ids";
 import { normalizeSheet } from "@/lib/normalize";
 import { downloadMonthlyXlsx } from "@/lib/xlsx";
@@ -35,11 +35,13 @@ import { calculateCardDetailTotal } from "@/lib/calculations";
 const SAVE_DEBOUNCE_MS = 600;
 
 export default function KakeiboClient({
-  initialSheets
+  initialSheets,
+  initialYearMonth
 }: {
   initialSheets: Record<string, MonthlySheet>;
+  initialYearMonth: string;
 }) {
-  const [yearMonth, setYearMonth] = useState(thisYearMonth());
+  const [yearMonth, setYearMonth] = useState(initialYearMonth);
   const [sheets, setSheets] = useState<Record<string, MonthlySheet>>(initialSheets);
   const [activeCardRowId, setActiveCardRowId] = useState<string | null>(null);
   const [isPaymentSourceMasterOpen, setIsPaymentSourceMasterOpen] = useState(false);
