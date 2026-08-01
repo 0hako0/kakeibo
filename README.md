@@ -8,7 +8,7 @@
 - 月次シート作成
 - 月次シートの行追加
 - 区分、項目、金額、メモ入力
-- localStorage 自動保存
+- Neon (Postgres) への自動保存、秘匿URLでの夫婦間共有
 - 月次集計
 - カード引落行からカード明細を入力
 - カード引落金額と明細合計の差額表示
@@ -33,18 +33,26 @@
 
 立替金は、まず「家計負担・夫立替」「家計負担・妻立替」として記録し、立替者、精算先、精算状態を月次行に持たせています。MVPでは未精算の立替を集計し、夫へ精算すべき金額、妻へ精算すべき金額、精算後の家計残高を表示します。返金時の相殺管理は、今後 `advance_settlements` のような返金消込テーブルを追加して拡張する想定です。
 
-## Supabase
+## データベース (Neon)
 
-MVPの画面は未設定でも動くように localStorage へ保存します。Supabase のテーブル定義は `supabase/schema.sql` にあります。
+月次シートは Neon (サーバーレスPostgres) の `monthly_sheets` テーブルに1か月ぶんずつJSONBで保存します。テーブル定義は `db/schema.sql` にあります。
+
+1. [Neon](https://neon.tech) でプロジェクトを作成し、接続文字列 (pooled connection string) を取得する。
+2. NeonのSQL Editorまたは `psql` で `db/schema.sql` を実行してテーブルを作成する。
+3. `.env.local` を用意する。
 
 ```bash
 cp .env.local.example .env.local
 ```
 
 ```env
-NEXT_PUBLIC_SUPABASE_URL=
-NEXT_PUBLIC_SUPABASE_ANON_KEY=
+DATABASE_URL=
+ACCESS_TOKEN=
 ```
+
+`DATABASE_URL` にはNeonの接続文字列を設定します。`ACCESS_TOKEN` は夫婦間の共有アクセス用の秘匿トークンで、未設定の場合はアクセス制限なしで動作します(ローカル開発向け)。
+
+本番 (Vercel: https://kakeibo-five-theta.vercel.app/) では、Vercelプロジェクトの Environment Variables に同じ `DATABASE_URL` と `ACCESS_TOKEN` を設定してください。共有相手には `https://kakeibo-five-theta.vercel.app/?token=<ACCESS_TOKEN>` のURLを伝えると、初回アクセス時にCookieが発行され、以降はログインなしでアクセスできます。
 
 ## 開発
 
